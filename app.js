@@ -1,29 +1,54 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
-const bodyParser = require('body-parser');
-require('dotenv').config();
+const morgan = require('morgan');
+const helmet = require('helmet');
+const dotenv = require('dotenv');
+const connectDB = require('./config/database');
+const swaggerSetup = require('./docs/swagger');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const plantacaoRoutes = require('./routes/plantacaoRoutes');
+const inspecaoRoutes = require('./routes/inspecaoRoutes');
 
+// Carregar variáveis de ambiente do arquivo .env
+dotenv.config();
+
+// Conectar ao banco de dados
+connectDB();
+
+// Inicializar o aplicativo Express
 const app = express();
 
-// Middleware
+// Middleware de segurança
+app.use(helmet());
+
+// Middleware para habilitar CORS
 app.use(cors());
-app.use(bodyParser.json({ limit: '50mb' }));  // Aumentando o limite de tamanho
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));  // Para dados enviados via URL encoded
-app.use(express.static('public'));
 
-// Conexão com o MongoDB
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('MongoDB Connected'))
-    .catch(err => console.log(err));
+// Middleware para log de requisições
+app.use(morgan('dev'));
 
+// Middleware para parsing de JSON
+app.use(express.json());
+
+// Middleware para parsing de dados de formulários
+app.use(express.urlencoded({ extended: true }));
 
 // Rotas
-const plantationsRoute = require('./routes/plantations');
-const presencasRoute = require('./routes/presencas');
-app.use('/api/plantations', plantationsRoute);
-app.use('/api/presencas', presencasRoute);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/plantacoes', plantacaoRoutes);
+app.use('/api/inspecoes', inspecaoRoutes);
 
-// Porta
+// Configuração do Swagger
+swaggerSetup(app);
+// http://localhost:3000/api-docs
+
+
+// Configuração da Porta
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Iniciar o servidor
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
